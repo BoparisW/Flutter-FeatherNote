@@ -8,7 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 1. เริ่มต้น Hive
+  // 1. เริ่มต้น Hive ss
   await Hive.initFlutter();
   
   // 2. ล้างข้อมูลทั้งหมดจาก Disk (ทุก Box)
