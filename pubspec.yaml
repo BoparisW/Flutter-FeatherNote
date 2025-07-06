@@ -30,5 +30,12 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   hive_generator: ^2.0.1
   build_runner: ^2.4.6
+  flutter_launcher_icons: ^0.14.4
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  image_path: "assets/icons/featherLOGO_no_bg.png"
+  adaptive_icon_background: "#FFFFFF"  # หรือ path ไปยังรูปพื้นหลัง
+  adaptive_icon_foreground: "assets/icons/featherLOGO_no_bg.png"
+  android: true
