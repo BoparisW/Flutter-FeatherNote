@@ -1,8 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:path_provider/path_provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:share_plus/share_plus.dart';
+
 import '../models/note.dart';
-import 'dart:convert';
 
 class NoteEditor extends StatefulWidget {
   final Note? note;
@@ -16,6 +22,7 @@ class NoteEditor extends StatefulWidget {
 class _NoteEditorState extends State<NoteEditor> {
   final titleController = TextEditingController();
   late quill.QuillController quillController;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   void initState() {
@@ -25,7 +32,7 @@ class _NoteEditorState extends State<NoteEditor> {
       titleController.text = widget.note!.title;
       final doc = quill.Document.fromJson(jsonDecode(widget.note!.content));
       quillController = quill.QuillController(
-        document: doc, 
+        document: doc,
         selection: const TextSelection.collapsed(offset: 0),
       )..readOnly = false;
     } else {
@@ -86,6 +93,77 @@ class _NoteEditorState extends State<NoteEditor> {
     }
   }
 
+  void _showShareOptions() {
+    final plainText = quillController.document.toPlainText();
+    final title = titleController.text.isEmpty ? 'Untitled Note' : titleController.text;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.text_fields),
+            title: const Text('Share as Text'),
+            onTap: () {
+              Navigator.pop(context);
+              Share.share('$title\n\n$plainText');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.picture_as_pdf),
+            title: const Text('Share as PDF'),
+            onTap: () {
+              Navigator.pop(context);
+              _shareAsPdf(title, plainText);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.image),
+            title: const Text('Share as Image'),
+            onTap: () {
+              Navigator.pop(context);
+              _shareAsImage();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _shareAsPdf(String title, String content) async {
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(title, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 16),
+            pw.Text(content),
+          ],
+        ),
+      ),
+    );
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$title.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await Share.shareXFiles([XFile(file.path)], text: 'Shared Note: $title');
+  }
+
+  Future<void> _shareAsImage() async {
+    final image = await _screenshotController.capture();
+    if (image == null) return;
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/note_image.png');
+    await file.writeAsBytes(image);
+
+    await Share.shareXFiles([XFile(file.path)], text: 'Shared Note Image');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,6 +183,11 @@ class _NoteEditorState extends State<NoteEditor> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share Note',
+            onPressed: _showShareOptions,
+          ),
           if (widget.note != null)
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
@@ -127,8 +210,11 @@ class _NoteEditorState extends State<NoteEditor> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
-              child: quill.QuillEditor.basic(
-                controller: quillController,
+              child: Screenshot(
+                controller: _screenshotController,
+                child: quill.QuillEditor.basic(
+                  controller: quillController,
+                ),
               ),
             ),
           ),

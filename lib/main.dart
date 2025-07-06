@@ -12,7 +12,7 @@ void main() async {
   await Hive.initFlutter();
   
   // 2. ล้างข้อมูลทั้งหมดจาก Disk (ทุก Box)
-  await Hive.deleteBoxFromDisk('notes'); // ล้างเฉพาะ Box 'notes'
+  // await Hive.deleteBoxFromDisk('notes'); // ล้างเฉพาะ Box 'notes'
   // หรือถ้าต้องการล้างทั้งหมด:
   // await Hive.deleteFromDisk();
   
